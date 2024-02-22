@@ -1,0 +1,73 @@
+#include <iostream>
+
+struct BankAccount{
+    BankAccount(long id) : id{id}{}
+    void add(double amount){
+        amount +=amount;
+    }
+    void subtract(double amount){
+        amount -=amount;
+    }
+    long id;
+    double amount;
+};
+
+struct AccountDatabase{
+    virtual ~AccountDatabase()=default;
+    virtual void set(double amount, BankAccount bank_account)=0;
+    virtual void retrieve(double amount, BankAccount bank_account)=0;
+};
+
+struct InMemoryAccountDatabase:AccountDatabase {
+    void set(double amount, BankAccount bank_account)override{
+        bank_account.add(amount);
+    }
+
+    void retrieve(double amount, BankAccount bank_account)override{
+        bank_account.subtract(amount);
+    } 
+};
+
+struct Logger{
+    virtual ~Logger()=default;
+    virtual void log_transfer(long from, long to, double amount)=0;
+};
+
+struct ConsoleLogger: Logger{
+    ConsoleLogger(const char * log): log{log}{}
+    void log_transfer(long from , long to, double amount) override{
+        printf("[cons] %ld -> %ld: %f\n", from , to, amount);
+        char * str;
+        sprintf(str, "[cons] %ld -> %ld: %f\n", from , to, amount);
+    }
+
+    const char* log;
+};
+
+struct Bank{
+    Bank(Logger& logger, AccountDatabase& account_database): 
+    logger{logger}, account_database{account_database}{}
+    
+    void make_transfer(long from, long to, double amount){
+        //--snip--
+        logger.log_transfer(from, to ,amount);
+    }
+private:
+    Logger& logger;
+    AccountDatabase& account_database;
+};
+
+
+
+struct FileLogger: Logger{
+    void log_transfer(long from, long to, double amount) override{
+        printf("[file] %ld, %ld, %f\n", from , to, amount);
+    }
+};
+
+
+int main(){
+    std::cout << "Hello world" << std::endl;
+}
+
+
