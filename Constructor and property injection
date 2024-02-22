@@ -1,0 +1,99 @@
+#include <iostream>
+#define CONSTRUCTOR_INJECTION 0
+#define PROPERTY_INJECTION 0
+#define CONSTRUCTOR_AND_PROPERTY_INJECTION 1
+struct Logger{
+    virtual ~Logger()=default;
+    virtual void log_transfer(long from, long to, double amount)=0;
+};
+
+struct ConsoleLogger: Logger{
+    void log_transfer(long from , long to, double amount) override{
+        printf("[cons] %ld -> %ld: %f\n", from , to, amount);
+    }
+};
+
+struct FileLogger: Logger{
+    void log_transfer(long from, long to, double amount) override{
+        printf("[file] %ld, %ld, %f\n", from , to, amount);
+    }
+};
+
+//constructor injection --use references as they cannot be reseated 
+#if (CONSTRUCTOR_INJECTION==1)
+struct Bank{
+    Bank(Logger& logger): logger{logger}{}
+    void make_transfer(long from, long to, double amount){
+        //--snip--
+        logger.log_transfer(from, to ,amount);
+    }
+private:
+    Logger& logger;
+};
+#endif
+
+
+#if(PROPERTY_INJECTION==1)
+//property injection --use pointers as they can be reseated 
+struct Bank{
+    Bank()=default;
+    void set_logger(Logger* new_logger){
+        logger = new_logger;
+    }
+    void make_transfer(long from, long to, double amount){
+        //--snip--
+        if(logger) logger->log_transfer(from, to ,amount);
+    }
+private:
+    Logger* logger{};
+};
+#endif
+
+#if(CONSTRUCTOR_AND_PROPERTY_INJECTION==1)
+//constructor injection and property injection
+struct Bank{
+    Bank(Logger* logger): logger{logger}{}
+    void set_logger(Logger* new_logger){
+        logger = new_logger;
+    }
+    void make_transfer(long from, long to, double amount){
+        //--snip--
+        if(logger) logger->log_transfer(from, to ,amount);
+    }
+private:
+    Logger* logger;
+};
+#endif
+
+int main(){
+    #if (CONSTRUCTOR_INJECTION==1)
+    //constructor injection test
+    ConsoleLogger logger;
+    FileLogger flogger;
+    Bank bank{flogger};
+    bank.make_transfer(1000, 2000, 49.95);
+    bank.make_transfer(2000, 4000, 20.00);
+    #endif
+
+    #if(PROPERTY_INJECTION==1)
+    //property injection test
+    ConsoleLogger console_logger;
+    FileLogger file_logger;
+    Bank bank;
+    bank.set_logger(&console_logger);
+    bank.make_transfer(1000, 2000, 49.95);
+    bank.set_logger(&file_logger);
+    bank.make_transfer(2000, 4000, 20.00);
+    #endif
+
+    #if(CONSTRUCTOR_AND_PROPERTY_INJECTION==1)
+    //constructor injection and property injection
+    ConsoleLogger console_logger;
+    FileLogger file_logger;
+    Bank bank(&console_logger);
+    //bank.set_logger(&console_logger);
+    bank.make_transfer(1000, 2000, 49.95);
+    bank.set_logger(&file_logger);
+    bank.make_transfer(2000, 4000, 20.00);
+    #endif
+}
